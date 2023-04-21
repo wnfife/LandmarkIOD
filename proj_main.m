@@ -8,6 +8,7 @@ ideck;
 % start monte carlo loop
 ntrials = 1000;
 err_MC  = zeros(3,3,ntrials);
+err_vel = zeros(3,ntrials);
 failcnt = 0;
 for nn = 1:ntrials
     nn
@@ -87,14 +88,22 @@ for nn = 1:ntrials
     alpha = -sfac*sqrt(z(1)^2 + (b*z(2)/a)^2 + (c*z(3)/a)^2)/(2*a);
     
     % compute positions at each image
-    r1 = (TFI(:,:,imgs(1))*pref_s + xhat(1:3))/alpha;
-    r2 = (TFI(:,:,imgs(2))*pref_s + xhat(4:6))/alpha;
-    r3 = (TFI(:,:,imgs(3))*pref_s + xhat(7:9))/alpha;
+    r1   = (TFI(:,:,imgs(1))*pref_s + xhat(1:3))/alpha;
+    r2   = (TFI(:,:,imgs(2))*pref_s + xhat(4:6))/alpha;
+    r3   = (TFI(:,:,imgs(3))*pref_s + xhat(7:9))/alpha;
+    dt31 = params.tspan(imgs(3)) - params.tspan(imgs(1));
+    dt32 = params.tspan(imgs(3)) - params.tspan(imgs(2));
+    dt21 = params.tspan(imgs(2)) - params.tspan(imgs(1));
+
+    % perform IOD
+    v2            = herrick_gibbs(r1, r2, r3, dt31, dt32, dt21, params.mu);
+    verr          = XINT(4:6,imgs(2)) - v2;
+    err_vel(:,nn) = verr;
     
-    % compute error
+    % compute position error
     rerr = [XINT(1:3,imgs(1)) - r1, XINT(1:3,imgs(2)) - r2, XINT(1:3,imgs(3)) - r3];
 
-    % store error
+    % store position error
     err_MC(:,:,nn) = rerr;
 end
 passcnt = ntrials - failcnt;
@@ -104,13 +113,17 @@ idx = any(err_MC ~= 0);
 idx = reshape(idx, 3, ntrials);
 
 err_MC(:,:,all(~idx,1)) = [];
+err_vel(:,all(~any(err_vel ~=0),1)) = [];
 
 % compute mean of errors for each image time
 err_MC   = err_MC./1000;
 err_mean = mean(err_MC,3);
 err_std  = std(err_MC,0,3);
 
-save_plt = true;
+vel_mean = mean(err_vel,2);
+vel_std  = std(err_vel,0,2);
+
+save_plt = false;
 
 % plot
 plot_results

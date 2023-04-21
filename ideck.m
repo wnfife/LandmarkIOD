@@ -39,6 +39,7 @@ params.los_SRF = params.los_err.*eye(3);
 alt0 = 300000; % [m] initial altitude of vehicle (300 km)
 r0   = [alt0+params.radius; 0; 0];
 v0   = [0; sqrt(2*params.mu/norm(r0) - params.mu/norm(r0)); 0];
+%v0   = [-50; 50; 0];
 params.x0 = [r0; v0];
 
 % filter params
